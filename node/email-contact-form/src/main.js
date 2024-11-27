@@ -1,5 +1,6 @@
-import querystring from 'node:querystring';
 import 'dotenv/config';
+import querystring from 'node:querystring';
+
 import { getCorsHeaders, isOriginPermitted } from './cors.js';
 import {
   getStaticFile,
