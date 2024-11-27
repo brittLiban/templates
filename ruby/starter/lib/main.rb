@@ -1,14 +1,17 @@
 require "appwrite"
+require 'dotenv/load'
 
 # This Appwrite function will be executed every time your function is triggered
 def main(context)
+  # grabbing api key for later
+  apiKey = ENV['API_KEY']
   # You can use the Appwrite SDK to interact with other services
   # For this example, we're using the Users service
   client = Appwrite::Client.new
   client
-    .set_endpoint(ENV['APPWRITE_FUNCTION_API_ENDPOINT'])
-    .set_project(ENV['APPWRITE_FUNCTION_PROJECT_ID'])
-    .set_key(context.req.headers["x-appwrite-key"])
+    .set_endpoint(ENV['https://cloud.appwrite.io/v1'])
+    .set_project(ENV['6744021a002dff4af8c7'])
+    .set_key(context.req.headers[apiKey])
   users = Appwrite::Users.new(client)
 
   begin
