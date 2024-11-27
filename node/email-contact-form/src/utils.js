@@ -64,25 +64,15 @@ export function urlWithCodeParam(baseUrl, codeParam) {
  * @returns {Promise<void>}
  */
 export async function sendEmail(options) {
-
   const transport = nodemailer.createTransport({
-    host: 'smtp.yourhost.com', // Replace with your SMTP host
-    port: 587,
+    // @ts-ignore
+    // Bypass some weird type checks
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT || 587,
     auth: {
-        user: 'your_smtp_username', // Replace with your SMTP username
-        pass: 'your_smtp_password', // Replace with your SMTP password
+      user: process.env.SMTP_USERNAME,
+      pass: process.env.SMTP_PASSWORD,
     },
-});
-//gpt above
-  // const transport = nodemailer.createTransport({
-  //   // @ts-ignore
-  //   // Bypass some weird type checks
-  //   host: process.env.SMTP_HOST,
-  //   port: process.env.SMTP_PORT || 587,
-  //   auth: {
-  //     user: process.env.SMTP_USERNAME,
-  //     pass: process.env.SMTP_PASSWORD,
-  //   },
-  // });
+  });
   await transport.sendMail(options);
 }

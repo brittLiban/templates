@@ -1,4 +1,5 @@
 import querystring from 'node:querystring';
+import 'dotenv/config';
 import { getCorsHeaders, isOriginPermitted } from './cors.js';
 import {
   getStaticFile,
@@ -61,19 +62,10 @@ export default async ({ req, res, log, error }) => {
 
   try {
     sendEmail({
-
-
-      to: 'example@recipient.com', // Replace with your email
-      from: 'example@yourdomain.com', // Replace with your SMTP username
+      to: process.env.SUBMIT_EMAIL,
+      from: /** @type {string} */ (process.env.SMTP_USERNAME),
       subject: `New form submission: ${req.headers['referer']}`,
       text: templateFormMessage(form),
-      //gpt above
-
-
-      // to: process.env.SUBMIT_EMAIL,
-      // from: /** @type {string} */ (process.env.SMTP_USERNAME),
-      // subject: `New form submission: ${req.headers['referer']}`,
-      // text: templateFormMessage(form),
     });
   } catch (err) {
     error(err.message);
