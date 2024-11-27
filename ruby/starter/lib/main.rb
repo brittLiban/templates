@@ -9,9 +9,9 @@ def main(context)
   # For this example, we're using the Users service
   client = Appwrite::Client.new
   client
-    .set_endpoint(ENV['https://cloud.appwrite.io/v1'])
-    .set_project(ENV['6744021a002dff4af8c7'])
-    .set_key(context.req.headers[apiKey])
+    .set_endpoint(ENV['APPWRITE_ENDPOINT'])
+    .set_project(ENV['APPWRITE_PROJECT_ID'])
+    .set_key(ENV['API_KEY'])
   users = Appwrite::Users.new(client)
 
   begin
