@@ -133,3 +133,4 @@ appwrite.json
 
 # VSCode history directory
 .history
+/vendor/

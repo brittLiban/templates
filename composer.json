@@ -1,0 +1,19 @@
+{
+    "name": "appwrite/template-converting",
+    "description": "Ruby templates for Appwrite Functions",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Appwrite\\TemplateConverting\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "liban britt",
+            "email": "britt.liban@student.greenriver.edu"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
