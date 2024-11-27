@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "type": "module",
   "scripts": {
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "setup": "npm install && npm run format"
   },
   "dependencies": {
     "node": "^20.18.1",
