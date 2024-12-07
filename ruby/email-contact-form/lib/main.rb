@@ -1,87 +1,80 @@
 require 'dotenv/load'
-require 'uri'
 require 'cgi'
-
+require 'uri'
 require_relative 'cors'
 require_relative 'utils'
 
 # Error codes
-ERROR_CODE = {
-  invalid_request: 'invalid-request',
-  missing_form_fields: 'missing-form-fields',
-  server_error: 'server-error'
+ErrorCode = {
+  INVALID_REQUEST: 'invalid-request',
+  MISSING_FORM_FIELDS: 'missing-form-fields',
+  SERVER_ERROR: 'server-error'
 }.freeze
 
-# Main function
-def handle_request(env, log, error)
-  req = Rack::Request.new(env)
-  res = Rack::Response.new
-
-  required_env_vars = %w[SUBMIT_EMAIL SMTP_HOST SMTP_USERNAME SMTP_PASSWORD]
-  throw_if_missing(ENV, required_env_vars)
+# Main logic
+def handle_request(req, res, log, error)
+  throw_if_missing(ENV, %w[SUBMIT_EMAIL SMTP_HOST SMTP_USERNAME SMTP_PASSWORD])
 
   if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
     log.call('WARNING: Allowing requests from any origin - this is a security risk!')
   end
 
-  # Handle root GET request
-  if req.request_method == 'GET' && req.path == '/'
-    res.write get_static_file('index.html')
-    res['Content-Type'] = 'text/html; charset=utf-8'
-    return res.finish
+  if req[:method] == 'GET' && req[:path] == '/'
+    res[:text] = get_static_file('index.html')
+    res[:status] = 200
+    res[:headers] = { 'Content-Type' => 'text/html; charset=utf-8' }
+    return res
   end
 
-  # Validate content type
-  unless req.content_type == 'application/x-www-form-urlencoded'
+  if req[:headers]['content-type'] != 'application/x-www-form-urlencoded'
     error.call('Incorrect content type.')
-    res.redirect url_with_code_param(req.referer, ERROR_CODE[:invalid_request])
-    return res.finish
+    res[:redirect] = url_with_code_param(req[:headers]['referer'], ErrorCode[:INVALID_REQUEST])
+    return res
   end
 
-  # Validate origin
   unless is_origin_permitted(req)
     error.call('Origin not permitted.')
-    res.redirect url_with_code_param(req.referer, ERROR_CODE[:invalid_request])
-    return res.finish
+    res[:redirect] = url_with_code_param(req[:headers]['referer'], ErrorCode[:INVALID_REQUEST])
+    return res
   end
 
-  # Parse form data
-  form = CGI.parse(req.body.read)
+  form = CGI.parse(req[:body] || '')
   begin
     throw_if_missing(form, ['email'])
   rescue StandardError => e
-    res.redirect url_with_code_param(req.referer, e.message), 301
-    get_cors_headers(req).each { |key, value| res[key] = value }
-    return res.finish
+    res[:redirect] = url_with_code_param(req[:headers]['referer'], e.message)
+    res[:status] = 301
+    res[:headers] = get_cors_headers(req)
+    return res
   end
 
-  # Send email
   begin
     send_email(
       to: ENV['SUBMIT_EMAIL'],
       from: ENV['SMTP_USERNAME'],
-      subject: "New form submission: #{req.referer}",
+      subject: "New form submission: #{req[:headers]['referer']}",
       text: template_form_message(form)
     )
   rescue StandardError => e
     error.call(e.message)
-    res.redirect url_with_code_param(req.referer, ERROR_CODE[:server_error]), 301
-    get_cors_headers(req).each { |key, value| res[key] = value }
-    return res.finish
+    res[:redirect] = url_with_code_param(req[:headers]['referer'], ErrorCode[:SERVER_ERROR])
+    res[:status] = 301
+    res[:headers] = get_cors_headers(req)
+    return res
   end
 
-  # Handle next redirect or success page
-  if form['_next'].nil? || form['_next'].empty?
-    res.write get_static_file('success.html')
-    res['Content-Type'] = 'text/html; charset=utf-8'
-    return res.finish
+  if form['_next'].nil? || form['_next'].first.empty?
+    res[:text] = get_static_file('success.html')
+    res[:status] = 200
+    res[:headers] = { 'Content-Type' => 'text/html; charset=utf-8' }
+  else
+    base_url = URI(req[:headers]['referer']).origin
+    redirect_url = URI.join(base_url, form['_next'].first).to_s
+    log.call("Redirecting to #{redirect_url}")
+    res[:redirect] = redirect_url
+    res[:status] = 301
+    res[:headers] = get_cors_headers(req)
   end
 
-  base_url = URI(req.referer).origin
-  next_url = URI.join(base_url, form['_next'].first).to_s
-  log.call("Redirecting to #{next_url}")
-
-  res.redirect next_url, 301
-  get_cors_headers(req).each { |key, value| res[key] = value }
-  res.finish
+  res
 end
