@@ -11,7 +11,6 @@ ErrorCode = {
   SERVER_ERROR: 'server-error'
 }.freeze
 
-# Main logic
 def handle_request(req, res, log, error)
   throw_if_missing(ENV, %w[SUBMIT_EMAIL SMTP_HOST SMTP_USERNAME SMTP_PASSWORD])
 
