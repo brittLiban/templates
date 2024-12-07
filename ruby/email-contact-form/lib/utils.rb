@@ -1,4 +1,4 @@
-require 'dotenv'
+require 'dotenv/load'
 require 'pathname'
 require 'fileutils'
 require 'net/smtp'
@@ -24,6 +24,7 @@ def template_form_message(form)
 end
 
 def url_with_code_param(base_url, code_param)
+  return "" if base_url.nil?
   uri = URI(base_url)
   params = URI.decode_www_form(uri.query || '') << ['code', code_param]
   uri.query = URI.encode_www_form(params)

@@ -1,8 +1,8 @@
 require 'dotenv/load'
 
-def is_origin_permitted(req)
+def is_origin_permitted(request)
   allowed_origins = ENV['ALLOWED_ORIGINS']
-  origin = req[:headers]['origin']
+  origin = request.header['origin']&.first
 
   return true if allowed_origins.nil? || allowed_origins == '*' || origin.nil?
 
@@ -10,8 +10,8 @@ def is_origin_permitted(req)
   allowed_origins_array.include?(origin)
 end
 
-def get_cors_headers(req)
-  origin = req[:headers]['origin']
+def get_cors_headers(request)
+  origin = request.header['origin']&.first
   return {} if origin.nil?
 
   allowed_origins = ENV['ALLOWED_ORIGINS']
