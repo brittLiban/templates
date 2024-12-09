@@ -21,6 +21,8 @@ def main(context)
     'SMTP_PASSWORD'
   ])
 
+  puts context.inspect
+
   if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
     log.warn('WARNING: Allowing requests from any origin - this is a security risk!')
   end
