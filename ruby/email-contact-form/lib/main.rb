@@ -1,6 +1,6 @@
 require 'dotenv'
-require 'logger'
 require 'timeout'
+require 'logger'
 require_relative 'cors'
 require_relative 'utils'
 
@@ -17,7 +17,11 @@ def main(context)
   req = context.req
   res = context.res
 
-  log.info('Main function started')
+  log.info("Main function started")
+
+  # Log Headers and Body for Debugging
+  log.info("Headers: #{req.headers.inspect}")
+  log.info("Body: #{req.body.inspect}")
 
   throw_if_missing(ENV, [
     'SUBMIT_EMAIL',
@@ -30,14 +34,6 @@ def main(context)
     log.warn('WARNING: Allowing requests from any origin - this is a security risk!')
   end
 
-  if req.method == 'GET' && req.path == '/'
-    return res.send(
-      get_static_file('index.html'),
-      200,
-      { 'Content-Type' => 'text/html; charset=utf-8' }
-    )
-  end
-
   unless req.headers['content-type'] == 'application/x-www-form-urlencoded'
     log.error('Incorrect content type.')
     return res.redirect(
@@ -45,16 +41,9 @@ def main(context)
     )
   end
 
-  unless origin_permitted?(req)
-    log.error('Origin not permitted.')
-    return res.redirect(
-      url_with_code_param(req.headers['referer'], ERROR_CODES[:INVALID_REQUEST])
-    )
-  end
-
   form = CGI.parse(req.body)
   begin
-    throw_if_missing(form, ['email'])
+    throw_if_missing(form, ['email', 'message'])
   rescue StandardError => e
     log.error("Form validation error: #{e.message}")
     return res.redirect(
