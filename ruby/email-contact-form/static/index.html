@@ -1,4 +1,4 @@
-<!doctype html>a
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -29,12 +29,20 @@
             style="max-width: 50rem"
             method="post"
           >
+            <!-- Email Input -->
             <input type="email" name="email" placeholder="Email" required />
+            
+            <!-- Message Input -->
             <textarea
               name="message"
               placeholder="Your Message"
               required
             ></textarea>
+            
+            <!-- Hidden _next Field for Success Redirect -->
+            <input type="hidden" name="_next" value="/success.html" />
+            
+            <!-- Submit Button -->
             <button class="button" type="submit">Submit</button>
           </form>
         </div>

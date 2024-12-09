@@ -13,12 +13,17 @@ def main(context)
   res = context.res
   log = context.log
 
+  log.info("Request body: #{req.body}")
+  
   throw_if_missing(ENV, [
     'SUBMIT_EMAIL',
     'SMTP_HOST',
     'SMTP_USERNAME',
     'SMTP_PASSWORD'
   ])
+
+  
+
 
   if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
     log.warn('WARNING: Allowing requests from any origin - this is a security risk!')
