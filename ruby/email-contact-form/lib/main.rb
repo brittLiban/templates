@@ -1,5 +1,6 @@
 require 'dotenv'
 require 'logger'
+require 'timeout'
 require_relative 'cors'
 require_relative 'utils'
 
