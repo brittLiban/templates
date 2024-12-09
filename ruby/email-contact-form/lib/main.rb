@@ -4,10 +4,10 @@ require_relative 'models/appwrite_request'
 require_relative 'utils/response'
 
 def main(context)
-  request = AppwriteRequest.new(context)
-  handler = EmailHandler.new(request)
-  
   begin
+    request = AppwriteRequest.new(context)
+    handler = EmailHandler.new(request)
+    
     case request.method
     when 'GET'
       handler.handle_get
@@ -19,8 +19,8 @@ def main(context)
       Response.error('Method not allowed', 405)
     end
   rescue => e
-    puts "Error: #{e.message}"
-    puts e.backtrace
+    context.error("Error: #{e.message}")
+    context.error(e.backtrace.join("\n"))
     Response.error(e.message, 500)
   end
 end

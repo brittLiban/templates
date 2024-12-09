@@ -16,7 +16,6 @@ class EmailHandler
       content = FileHelper.get_static_file('index.html')
       Response.success(content, 'text/html; charset=utf-8')
     rescue => e
-      puts "Error reading file: #{e.message}"
       Response.error('File not found', 404)
     end
   end
@@ -33,7 +32,6 @@ class EmailHandler
       @email_util.send_email(form_data)
       handle_success(form_data)
     rescue => e
-      puts "Error sending email: #{e.message}"
       Response.error("Failed to send email", 500)
     end
   end
