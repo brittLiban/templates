@@ -1,6 +1,4 @@
-require 'dotenv'
-
-class Cors
+module Cors
   def self.origin_permitted?(headers)
     return true if ENV['ALLOWED_ORIGINS'].nil? || 
                   ENV['ALLOWED_ORIGINS'] == '*' || 
