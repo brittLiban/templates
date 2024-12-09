@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
 
-gem 'mail', '~> 2.8'
-gem 'dotenv', '~> 2.8'
-gem 'json', '~> 2.6'
+ruby '3.0.0'
+
+gem 'appwrite'
+gem 'mail'
+gem 'dotenv'

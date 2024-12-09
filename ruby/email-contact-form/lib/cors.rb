@@ -1,22 +1,25 @@
-module Cors
-  def self.origin_permitted?(headers)
-    return true if ENV['ALLOWED_ORIGINS'].nil? || 
-                  ENV['ALLOWED_ORIGINS'] == '*' || 
-                  headers['origin'].nil?
-                  
-    allowed_origins = ENV['ALLOWED_ORIGINS'].split(',')
-    allowed_origins.include?(headers['origin'])
-  end
-
-  def self.cors_headers(headers)
-    return {} if headers['origin'].nil?
-    
-    origin = if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
-      '*'
-    else
-      headers['origin']
+class Cors
+    def origin_permitted?(request)
+      return true if allowed_origins_open? || !request.headers['origin']
+  
+      allowed_origins_array.include?(request.headers['origin'])
     end
-    
-    { 'Access-Control-Allow-Origin' => origin }
+  
+    def cors_headers(request)
+      return {} unless request.headers['origin']
+  
+      {
+        'Access-Control-Allow-Origin' => allowed_origins_open? ? '*' : request.headers['origin']
+      }
+    end
+  
+    private
+  
+    def allowed_origins_open?
+      ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
+    end
+  
+    def allowed_origins_array
+      ENV['ALLOWED_ORIGINS'].split(',')
+    end
   end
-end
