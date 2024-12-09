@@ -1,22 +1,22 @@
-require 'dotenv/load'
+require 'dotenv'
 
-def is_origin_permitted(request)
-  allowed_origins = ENV['ALLOWED_ORIGINS']
-  origin = request.header['origin']&.first
-
-  return true if allowed_origins.nil? || allowed_origins == '*' || origin.nil?
-
-  allowed_origins_array = allowed_origins.split(',')
-  allowed_origins_array.include?(origin)
+def origin_permitted?(req)
+  return true if ENV['ALLOWED_ORIGINS'].nil? || 
+                 ENV['ALLOWED_ORIGINS'] == '*' || 
+                 req.headers['origin'].nil?
+                 
+  allowed_origins = ENV['ALLOWED_ORIGINS'].split(',')
+  allowed_origins.include?(req.headers['origin'])
 end
 
-def get_cors_headers(request)
-  origin = request.header['origin']&.first
-  return {} if origin.nil?
-
-  allowed_origins = ENV['ALLOWED_ORIGINS']
-  {
-    'Access-Control-Allow-Origin' => 
-      allowed_origins.nil? || allowed_origins == '*' ? '*' : origin
-  }
+def cors_headers(req)
+  return {} if req.headers['origin'].nil?
+  
+  origin = if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
+    '*'
+  else
+    req.headers['origin']
+  end
+  
+  { 'Access-Control-Allow-Origin' => origin }
 end
