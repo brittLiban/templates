@@ -1,74 +1,57 @@
-require 'dotenv'
-require 'timeout'
-require 'logger'
-require_relative 'cors'
 require_relative 'utils'
+require_relative 'cors'
+require 'dotenv'
+require 'json'
 
-ERROR_CODES = {
-  INVALID_REQUEST: 'invalid-request',
-  MISSING_FORM_FIELDS: 'missing-form-fields',
-  SERVER_ERROR: 'server-error'
-}.freeze
-
-def main(context)
-  log = context.log.is_a?(Logger) ? context.log : Logger.new(STDOUT)
-
-  req = context.req
-  res = context.res
-
-  log.info("Main function started")
-  log.info("Headers: #{req.headers.inspect}")
-  log.info("Body: #{req.body.inspect}")
-
-  throw_if_missing(ENV, ['SUBMIT_EMAIL', 'SMTP_HOST', 'SMTP_USERNAME', 'SMTP_PASSWORD'])
-
-  unless req.headers['content-type'] == 'application/x-www-form-urlencoded'
-    log.error('Incorrect content type.')
-    return res.redirect(
-      url_with_code_param(req.headers['referer'], ERROR_CODES[:INVALID_REQUEST])
-    )
+class EmailContact
+  def self.handle_request(method, headers, params)
+    case method
+    when 'GET'
+      handle_get(headers)
+    when 'POST'
+      handle_post(headers, params)
+    else
+      { status: 405, headers: {}, body: 'Method not allowed' }
+    end
   end
 
-  form = CGI.parse(req.body)
-  begin
-    throw_if_missing(form, ['email', 'message'])
-  rescue StandardError => e
-    log.error("Form validation error: #{e.message}")
-    return res.redirect(
-      url_with_code_param(req.headers['referer'], ERROR_CODES[:MISSING_FORM_FIELDS]),
-      301,
-      cors_headers(req)
-    )
+  private
+
+  def self.handle_get(headers)
+    return { status: 403, body: 'Forbidden' } unless Cors.origin_permitted?(headers)
+
+    {
+      status: 200,
+      headers: Cors.cors_headers(headers).merge('Content-Type' => 'text/html'),
+      body: Utils.get_static_file('index.html')
+    }
   end
 
-  begin
-    send_email(
-      to: ENV['SUBMIT_EMAIL'],
-      from: ENV['SMTP_USERNAME'],
-      subject: "New form submission: #{req.headers['referer']}",
-      text: template_form_message(form)
-    )
-  rescue StandardError => e
-    log.error("Email sending failed: #{e.message}")
-    return res.redirect(
-      url_with_code_param(req.headers['referer'], ERROR_CODES[:SERVER_ERROR]),
-      301,
-      cors_headers(req)
-    )
+  def self.handle_post(headers, params)
+    return { status: 403, body: 'Forbidden' } unless Cors.origin_permitted?(headers)
+
+    begin
+      Utils.throw_if_missing(params, ['_next'])
+      
+      Utils.send_email(
+        from: ENV['SMTP_USERNAME'],
+        to: ENV['SUBMIT_EMAIL'],
+        subject: 'New Contact Form Submission',
+        body: Utils.template_form_message(params)
+      )
+
+      {
+        status: 302,
+        headers: Cors.cors_headers(headers).merge('Location' => params['_next']),
+        body: ''
+      }
+    rescue => e
+      next_url = Utils.url_with_code_param(params['_next'], e.message)
+      {
+        status: 302,
+        headers: Cors.cors_headers(headers).merge('Location' => next_url),
+        body: ''
+      }
+    end
   end
-
-  if form['_next'].nil? || form['_next'].empty?
-    return res.send(
-      get_static_file('success.html'),
-      200,
-      { 'Content-Type' => 'text/html; charset=utf-8' }
-    )
-  end
-
-  base_url = URI.parse(req.headers['referer'] || 'http://default-url.com').origin
-  next_url = URI.join(base_url, form['_next'].first).to_s
-
-  log.info("Redirecting to #{next_url}")
-
-  res.redirect(next_url, 301, cors_headers(req))
 end
