@@ -1,4 +1,5 @@
 require 'dotenv'
+require 'logger'
 require_relative 'cors'
 require_relative 'utils'
 
@@ -9,21 +10,20 @@ ERROR_CODES = {
 }.freeze
 
 def main(context)
+  # Fallback Logger
+  log = context.log.is_a?(Logger) ? context.log : Logger.new(STDOUT)
+
   req = context.req
   res = context.res
-  log = context.log
 
-  log.info("Request body: #{req.body}")
-  
+  log.info('Main function started')
+
   throw_if_missing(ENV, [
     'SUBMIT_EMAIL',
     'SMTP_HOST',
     'SMTP_USERNAME',
     'SMTP_PASSWORD'
   ])
-
-  
-
 
   if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
     log.warn('WARNING: Allowing requests from any origin - this is a security risk!')
@@ -38,14 +38,14 @@ def main(context)
   end
 
   unless req.headers['content-type'] == 'application/x-www-form-urlencoded'
-    context.error('Incorrect content type.')
+    log.error('Incorrect content type.')
     return res.redirect(
       url_with_code_param(req.headers['referer'], ERROR_CODES[:INVALID_REQUEST])
     )
   end
 
   unless origin_permitted?(req)
-    context.error('Origin not permitted.')
+    log.error('Origin not permitted.')
     return res.redirect(
       url_with_code_param(req.headers['referer'], ERROR_CODES[:INVALID_REQUEST])
     )
@@ -55,6 +55,7 @@ def main(context)
   begin
     throw_if_missing(form, ['email'])
   rescue StandardError => e
+    log.error("Form validation error: #{e.message}")
     return res.redirect(
       url_with_code_param(req.headers['referer'], e.message),
       301,
@@ -70,7 +71,7 @@ def main(context)
       text: template_form_message(form)
     )
   rescue StandardError => e
-    context.error(e.message)
+    log.error("Email sending failed: #{e.message}")
     return res.redirect(
       url_with_code_param(req.headers['referer'], ERROR_CODES[:SERVER_ERROR]),
       301,
