@@ -14,9 +14,9 @@ class Utils
 
   def self.template_form_message(form)
     message = "You've received a new message.\n\n"
-    form.reject { |key, _| key == '_next' }
-        .map { |key, value| "#{key}: #{value}" }
-        .join("\n")
+    form_entries = form.reject { |key, _| key == '_next' }
+                      .map { |key, value| "#{key}: #{value}" }
+                      .join("\n")
     message + form_entries
   end
 

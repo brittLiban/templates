@@ -1,57 +1,47 @@
-require_relative 'utils'
-require_relative 'cors'
 require 'dotenv'
-require 'json'
+require 'mail'
+require 'uri'
 
-class EmailContact
-  def self.handle_request(method, headers, params)
-    case method
-    when 'GET'
-      handle_get(headers)
-    when 'POST'
-      handle_post(headers, params)
-    else
-      { status: 405, headers: {}, body: 'Method not allowed' }
-    end
+class Utils
+  def self.throw_if_missing(obj, keys)
+    missing = keys.select { |key| !obj.key?(key) || obj[key].nil? }
+    raise "Missing required fields: #{missing.join(', ')}" unless missing.empty?
   end
 
-  private
-
-  def self.handle_get(headers)
-    return { status: 403, body: 'Forbidden' } unless Cors.origin_permitted?(headers)
-
-    {
-      status: 200,
-      headers: Cors.cors_headers(headers).merge('Content-Type' => 'text/html'),
-      body: Utils.get_static_file('index.html')
-    }
+  def self.get_static_file(file_name)
+    File.read(File.join(__dir__, '../static', file_name))
   end
 
-  def self.handle_post(headers, params)
-    return { status: 403, body: 'Forbidden' } unless Cors.origin_permitted?(headers)
+  def self.template_form_message(form)
+    message = "You've received a new message.\n\n"
+    form_entries = form.reject { |key, _| key == '_next' }
+                      .map { |key, value| "#{key}: #{value}" }
+                      .join("\n")
+    message + form_entries
+  end
 
-    begin
-      Utils.throw_if_missing(params, ['_next'])
-      
-      Utils.send_email(
-        from: ENV['SMTP_USERNAME'],
-        to: ENV['SUBMIT_EMAIL'],
-        subject: 'New Contact Form Submission',
-        body: Utils.template_form_message(params)
-      )
+  def self.url_with_code_param(base_url, code_param)
+    uri = URI(base_url)
+    params = URI.decode_www_form(uri.query || '') << ['code', code_param]
+    uri.query = URI.encode_www_form(params)
+    uri.to_s
+  end
 
-      {
-        status: 302,
-        headers: Cors.cors_headers(headers).merge('Location' => params['_next']),
-        body: ''
-      }
-    rescue => e
-      next_url = Utils.url_with_code_param(params['_next'], e.message)
-      {
-        status: 302,
-        headers: Cors.cors_headers(headers).merge('Location' => next_url),
-        body: ''
+  def self.send_email(options)
+    Mail.defaults do
+      delivery_method :smtp, {
+        address: ENV['SMTP_HOST'],
+        port: ENV['SMTP_PORT'] || 587,
+        user_name: ENV['SMTP_USERNAME'],
+        password: ENV['SMTP_PASSWORD']
       }
     end
+
+    Mail.new do
+      from options[:from]
+      to options[:to]
+      subject options[:subject]
+      body options[:body]
+    end.deliver!
   end
 end
