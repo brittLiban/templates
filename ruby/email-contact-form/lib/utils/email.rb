@@ -1,14 +1,20 @@
 require 'mail'
-require 'uri'
 
-class Utils
-  def self.get_static_file(filename)
-    File.read(File.join(__dir__, 'static', filename))
-  rescue Errno::ENOENT
-    raise "Static file not found: #{filename}"
+class EmailUtil
+  def send_email(form_data)
+    configure_smtp
+    
+    Mail.new do
+      to ENV['SUBMIT_EMAIL']
+      from ENV['SMTP_USERNAME']
+      subject "New form submission"
+      body template_form_message(form_data)
+    end.deliver!
   end
 
-  def send_email(options)
+  private
+
+  def configure_smtp
     Mail.defaults do
       delivery_method :smtp, {
         address: ENV['SMTP_HOST'],
@@ -19,13 +25,6 @@ class Utils
         enable_starttls_auto: true
       }
     end
-
-    Mail.new do
-      to options[:to]
-      from options[:from]
-      subject options[:subject]
-      body options[:body]
-    end.deliver!
   end
 
   def template_form_message(form_data)

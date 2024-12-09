@@ -5,9 +5,8 @@ class Cors
     end
   
     def cors_headers(request)
-      return {} unless request.headers['origin']
       {
-        'Access-Control-Allow-Origin' => allowed_origins_open? ? '*' : request.headers['origin'],
+        'Access-Control-Allow-Origin' => '*',
         'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers' => 'Content-Type'
       }

@@ -1,16 +1,24 @@
 require 'mail'
-require_relative 'cors'
-require_relative 'utils'
+require_relative '../utils/cors'
+require_relative '../utils/email'
+require_relative '../utils/file_helper'
+require_relative '../utils/response'
 
 class EmailHandler
   def initialize(request)
     @request = request
-    @utils = Utils.new
+    @email_util = EmailUtil.new
     @cors = Cors.new
   end
 
   def handle_get
-    Response.success(Utils.get_static_file('index.html'), 'text/html')
+    begin
+      content = FileHelper.get_static_file('index.html')
+      Response.success(content, 'text/html; charset=utf-8')
+    rescue => e
+      puts "Error reading file: #{e.message}"
+      Response.error('File not found', 404)
+    end
   end
 
   def handle_post
@@ -22,11 +30,16 @@ class EmailHandler
     return Response.error('Missing email field', 400) unless form_data['email']
 
     begin
-      send_email(form_data)
+      @email_util.send_email(form_data)
       handle_success(form_data)
     rescue => e
-      Response.error("Failed to send email: #{e.message}", 500)
+      puts "Error sending email: #{e.message}"
+      Response.error("Failed to send email", 500)
     end
+  end
+
+  def handle_options
+    Response.success('', 'text/plain', 204)
   end
 
   private
@@ -38,27 +51,18 @@ class EmailHandler
   end
 
   def valid_content_type?
-    @request.headers['content-type'] == 'application/x-www-form-urlencoded'
+    @request.headers['content-type'].to_s.include?('application/x-www-form-urlencoded')
   end
 
   def parse_form_data
-    URI.decode_www_form(@request.body).to_h
-  end
-
-  def send_email(form_data)
-    @utils.send_email(
-      to: ENV['SUBMIT_EMAIL'],
-      from: ENV['SMTP_USERNAME'],
-      subject: "New form submission: #{@request.headers['referer']}",
-      body: @utils.template_form_message(form_data)
-    )
+    URI.decode_www_form(@request.body.to_s).to_h
   end
 
   def handle_success(form_data)
     if form_data['_next']
       Response.redirect(form_data['_next'])
     else
-      Response.success(Utils.get_static_file('success.html'), 'text/html')
+      Response.success(FileHelper.get_static_file('success.html'), 'text/html; charset=utf-8')
     end
   end
 end
