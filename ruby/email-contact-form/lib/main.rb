@@ -12,7 +12,6 @@ def main(context)
   req = context.req
   res = context.res
   log = context.log
-  error = context.error
 
   throw_if_missing(ENV, [
     'SUBMIT_EMAIL',
@@ -20,8 +19,6 @@ def main(context)
     'SMTP_USERNAME',
     'SMTP_PASSWORD'
   ])
-
-  puts context.inspect
 
   if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
     log.warn('WARNING: Allowing requests from any origin - this is a security risk!')
@@ -36,14 +33,14 @@ def main(context)
   end
 
   unless req.headers['content-type'] == 'application/x-www-form-urlencoded'
-    error.log('Incorrect content type.')
+    context.error('Incorrect content type.')
     return res.redirect(
       url_with_code_param(req.headers['referer'], ERROR_CODES[:INVALID_REQUEST])
     )
   end
 
   unless origin_permitted?(req)
-    error.log('Origin not permitted.')
+    context.error('Origin not permitted.')
     return res.redirect(
       url_with_code_param(req.headers['referer'], ERROR_CODES[:INVALID_REQUEST])
     )
@@ -68,7 +65,7 @@ def main(context)
       text: template_form_message(form)
     )
   rescue StandardError => e
-    error.log(e.message)
+    context.error(e.message)
     return res.redirect(
       url_with_code_param(req.headers['referer'], ERROR_CODES[:SERVER_ERROR]),
       301,
@@ -86,8 +83,8 @@ def main(context)
 
   base_url = URI.parse(req.headers['referer']).origin
   next_url = URI.join(base_url, form['_next'].first).to_s
-  
+
   log.info("Redirecting to #{next_url}")
-  
+
   res.redirect(next_url, 301, cors_headers(req))
 end
