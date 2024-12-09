@@ -11,28 +11,16 @@ ERROR_CODES = {
 }.freeze
 
 def main(context)
-  # Fallback Logger
   log = context.log.is_a?(Logger) ? context.log : Logger.new(STDOUT)
 
   req = context.req
   res = context.res
 
   log.info("Main function started")
-
-  # Log Headers and Body for Debugging
   log.info("Headers: #{req.headers.inspect}")
   log.info("Body: #{req.body.inspect}")
 
-  throw_if_missing(ENV, [
-    'SUBMIT_EMAIL',
-    'SMTP_HOST',
-    'SMTP_USERNAME',
-    'SMTP_PASSWORD'
-  ])
-
-  if ENV['ALLOWED_ORIGINS'].nil? || ENV['ALLOWED_ORIGINS'] == '*'
-    log.warn('WARNING: Allowing requests from any origin - this is a security risk!')
-  end
+  throw_if_missing(ENV, ['SUBMIT_EMAIL', 'SMTP_HOST', 'SMTP_USERNAME', 'SMTP_PASSWORD'])
 
   unless req.headers['content-type'] == 'application/x-www-form-urlencoded'
     log.error('Incorrect content type.')
@@ -47,7 +35,7 @@ def main(context)
   rescue StandardError => e
     log.error("Form validation error: #{e.message}")
     return res.redirect(
-      url_with_code_param(req.headers['referer'], e.message),
+      url_with_code_param(req.headers['referer'], ERROR_CODES[:MISSING_FORM_FIELDS]),
       301,
       cors_headers(req)
     )
@@ -77,7 +65,7 @@ def main(context)
     )
   end
 
-  base_url = URI.parse(req.headers['referer']).origin
+  base_url = URI.parse(req.headers['referer'] || 'http://default-url.com').origin
   next_url = URI.join(base_url, form['_next'].first).to_s
 
   log.info("Redirecting to #{next_url}")
